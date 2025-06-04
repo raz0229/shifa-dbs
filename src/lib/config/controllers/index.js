@@ -7,7 +7,7 @@ export const TOP_CAUSE_OF_VISITS_QUERY = `(SELECT cause_of_visit, COUNT(*) AS vi
 
 export const PAST_WEEK_APPOINTMENTS_QUERY = `SELECT DATE_FORMAT(FROM_UNIXTIME(date), '%Y-%m-%d') AS appointment_day, COUNT(*) AS appointment_count FROM Appointment WHERE date >= UNIX_TIMESTAMP(CURDATE() - INTERVAL 6 DAY) GROUP BY appointment_day ORDER BY appointment_day ASC;`;
 
-export const LIST_ALL_PATIENTS_QUERY = `SELECT P.name, P.sex, P.phone, P.city, COUNT(A.ap_id) AS total_appointments FROM Patient AS P LEFT JOIN Appointment AS A ON P.id = A.patient GROUP BY P.id, P.name, P.sex, P.phone, P.city ORDER BY P.name;`
+export const LIST_ALL_PATIENTS_QUERY = `SELECT P.id, P.name, P.sex, P.phone, P.city, COUNT(A.ap_id) AS total_appointments FROM Patient AS P LEFT JOIN Appointment AS A ON P.id = A.patient GROUP BY P.id, P.name, P.sex, P.phone, P.city ORDER BY P.name;`
 
 export const isSignedIn = async () => {
   return new Promise(async resolve => {

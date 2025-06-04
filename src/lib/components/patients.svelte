@@ -19,6 +19,7 @@
             if (result && result.results) {
                 for (let row of result.results) {
                     data.push({
+                        id: row.id,
                         name: row.name,
                         sex: row.sex,
                         phone: row.phone,
@@ -46,6 +47,7 @@
     import EditPatientModal from "$lib/components/EditPatientModal.svelte";
     import ViewPatientModal from "$lib/components/ViewPatientModal.svelte";
     import AddPatientModal from "./AddPatientModal.svelte";
+    import ConfirmModal from "./ConfirmModal.svelte";
     import { capitalizeWords, cities } from "$lib/config/controllers";
 
     let sampleAppointments = [
@@ -102,6 +104,9 @@
                 sqlLogs.set(updated);
                 M.toast({html: '🥳 Sucessfully added a Patient'})
                 M.toast({html: '✔️ SQL Query Added to Logs'})
+                allPatients.push(patient);
+                patients.push(patient)
+                patients = patients
             } else 
             M.toast({html: '❌ Oh oh! Could not add Patient'})
         } catch (error) {
@@ -138,8 +143,49 @@
         M.Modal.getInstance(modalElem).open();
     }
 
-    function deletePatient(patient) {
-        console.log("Delete", patient);
+    function openDeletePatientModal(patient) {
+        const modalElem = document.getElementById("confirm-modal");
+        M.Modal.getInstance(modalElem).open();
+        selectedPatient = patient;
+    }
+
+    const deletePatient = async () => {
+        if (selectedPatient) {
+            const query = `DELETE FROM Patient WHERE id = ${selectedPatient.id};`;
+            try {
+                const response = await fetch("/api/query", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        query
+                    }),
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    const updated = [...$sqlLogs, {
+                         query,
+                         date: new Date().toString().substring(0, 21),
+                    }];
+                    sqlLogs.set(updated);
+                    M.toast({html: '✅ Patient Deleted'})
+                    M.toast({html: '✔️ SQL Query Added to Logs'})
+                    
+                    let index = patients.findIndex(p => p.id == selectedPatient.id);
+                    if (index !== -1)
+                        patients.splice(index, 1)
+                    allPatients.splice(allPatients.findIndex(p => p.id == 3), 1)
+
+                    patients = patients
+                } else 
+                M.toast({html: '❌ Oh oh! Could not delete Patient'})
+            } catch (error) {
+                console.log(error);
+                M.toast({html: '❌ Something went wrong'})
+            }
+        }
     }
 
     // Initialize Materialize select after mount
@@ -200,6 +246,9 @@
     ><i class="material-icons">add</i></a
 >
 
+<!-- Confirm Delete Modal -->
+<ConfirmModal onDelete={() => deletePatient()} />
+
 <!-- Edit Patient Modal Component -->
 <EditPatientModal bind:patient={selectedPatient} on:save={handleSave} />
 
@@ -207,8 +256,7 @@
 <ViewPatientModal appointments={sampleAppointments} />
 
 <!-- Add Patient Modal -->
-<AddPatientModal 
-on:save={handleAdd} />
+<AddPatientModal on:save={handleAdd} />
 
 <div class="form-container z-depth-2 white" style="max-width: 80rem;">
     <h5 class="form-title">Patient Search</h5>
@@ -251,7 +299,7 @@ on:save={handleAdd} />
                 Search
             </button>
         </div>
-                <div class="input-field col s12">
+        <div class="input-field col s12">
             <button
                 class="btn red waves-effect waves-light btn-block"
                 on:click={clearSearch}
@@ -262,17 +310,20 @@ on:save={handleAdd} />
     </div>
 </div>
 
-
-<h6 style="margin-left: 1rem;  margin-top: 4rem;"><b>&nbsp;Patients Count: </b> {patients.length} </h6>
+<h6 style="margin-left: 1rem;  margin-top: 4rem;">
+    <b>&nbsp;Patients Count: </b>
+    {patients.length}
+</h6>
 
 <div
     class="list-container z-depth-1 white"
     style="margin-bottom: 12rem; max-width: 80rem;"
 >
-
-{#if patients.length === 0}
-<p class="red-text" style="text-align: center;"><em>No Patients! Try clearing the Search Fields</em></p>
-{/if}
+    {#if patients.length === 0}
+        <p class="red-text" style="text-align: center;">
+            <em>No Patients! Try clearing the Search Fields</em>
+        </p>
+    {/if}
 
     {#each patients as patient}
         <div class="patient-card">
@@ -301,7 +352,7 @@ on:save={handleAdd} />
                 </a>
                 <a
                     class="btn-floating red"
-                    on:click={() => deletePatient(patient)}
+                    on:click={() => openDeletePatientModal(patient)}
                 >
                     <i class="material-icons">delete</i>
                 </a>
