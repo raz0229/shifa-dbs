@@ -14,21 +14,21 @@ export async function POST({ request }) {
         const queries = [
             // Create Doctor Table
             `CREATE TABLE Doctor (
-    doc_id INT PRIMARY KEY,
+    doc_id INT PRIMARY KEY AUTO_INCREMENT,
     name TEXT,
     fee INT
 );`,
 
             // Create Prescription Table
             `CREATE TABLE Prescription (
-    pres_id INT PRIMARY KEY,
+    pres_id INT PRIMARY KEY AUTO_INCREMENT,
     name TEXT,
     fee INT
 );`,
 
             // Create Patient Table
             `CREATE TABLE Patient (
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     sex CHAR(1),
     phone TEXT,
     name TEXT,
@@ -37,7 +37,7 @@ export async function POST({ request }) {
 
             // Create Appointment Table
             `CREATE TABLE Appointment (
-    ap_id INT PRIMARY KEY,
+    ap_id INT PRIMARY KEY AUTO_INCREMENT,
     date INT,
     cause_of_visit TEXT,
     examiner INT,

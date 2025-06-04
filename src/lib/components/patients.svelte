@@ -40,20 +40,13 @@
 </script>
 
 <script>
-    import { onMount, createEventDispatcher } from "svelte";
+    import { onMount } from "svelte";
     import { browser } from "$app/environment";
     import { accentColor, sqlLogs } from "$lib/stores";
     import EditPatientModal from "$lib/components/EditPatientModal.svelte";
     import ViewPatientModal from "$lib/components/ViewPatientModal.svelte";
     import AddPatientModal from "./AddPatientModal.svelte";
     import { capitalizeWords, cities } from "$lib/config/controllers";
-
-    let samplePatient = {
-        name: "John Doe",
-        sex: "Male",
-        phone: "123-456-7890",
-        city: "New York",
-    };
 
     let sampleAppointments = [
         {
@@ -86,9 +79,35 @@
         console.log("Saved patient:", updated);
     }
 
-    function handleAdd(event) {
-        const updated = event.detail;
-        console.log("Added patient:", updated);
+    async function handleAdd(event) {
+        const patient = event.detail;
+        const query = `INSERT INTO Patient (sex, phone, name, city) VALUES ('${patient.sex}', '${patient.phone}', '${patient.name}', '${patient.city}');`;
+        try {
+            const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    query
+                }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                const updated = [...$sqlLogs, {
+                     query,
+                     date: new Date().toString().substring(0, 21),
+                }];
+                sqlLogs.set(updated);
+                M.toast({html: '🥳 Sucessfully added a Patient'})
+                M.toast({html: '✔️ SQL Query Added to Logs'})
+            } else 
+            M.toast({html: '❌ Oh oh! Could not add Patient'})
+        } catch (error) {
+            console.log(error);
+            M.toast({html: '❌ Something went wrong'})
+        }
     }
 
     let color;
@@ -185,10 +204,11 @@
 <EditPatientModal bind:patient={selectedPatient} on:save={handleSave} />
 
 <!-- View Patient Modal -->
-<ViewPatientModal patient={samplePatient} appointments={sampleAppointments} />
+<ViewPatientModal appointments={sampleAppointments} />
 
 <!-- Add Patient Modal -->
-<AddPatientModal bind:patient={selectedPatient} on:save={handleAdd} />
+<AddPatientModal 
+on:save={handleAdd} />
 
 <div class="form-container z-depth-2 white" style="max-width: 80rem;">
     <h5 class="form-title">Patient Search</h5>

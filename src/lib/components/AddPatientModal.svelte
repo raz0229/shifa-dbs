@@ -1,22 +1,15 @@
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
-    import { accentColor } from "$lib/stores";
-
-  export let patient = {
-    name: '',
-    sex: '',
-    phone: '',
-    city: ''
-  };
+  import { onMount, createEventDispatcher } from "svelte";
+  import { accentColor } from "$lib/stores";
+  import { cities } from "$lib/config/controllers";
 
   let color;
 
-  let patientName;
-  let patientSex;
-  let patientPhone;
-  let patientCity;
+  let patientName = "";
+  let patientSex = "";
+  let patientPhone = "";
+  let patientCity = "";
 
-  const cities = ['New York', 'London', 'Tokyo', 'Sydney', 'Paris'];
   const dispatch = createEventDispatcher();
 
   let modalElem;
@@ -24,14 +17,28 @@
   onMount(() => {
     // Initialize Materialize modal and select
     const modal = M.Modal.init(modalElem);
-    const selects = document.querySelectorAll('select');
+    const selects = document.querySelectorAll("select");
     M.FormSelect.init(selects);
     color = $accentColor;
   });
 
   function save() {
-    dispatch('save', patient); // send updated patient to parent
-    M.Modal.getInstance(modalElem).close();
+    if (
+      patientName.trim().length == 0 ||
+      patientCity.trim().length == 0 ||
+      patientPhone.trim().length == 0 ||
+      patientSex.trim().length == 0
+    )
+      M.toast({ html: "❌ All fields are required" });
+    else {
+      dispatch("save", {
+        name: patientName.trim().toLowerCase(),
+        sex: patientSex.trim(),
+        phone: patientPhone.trim(),
+        city: patientCity.trim(),
+      }); // send updated patient to parent
+      M.Modal.getInstance(modalElem).close();
+    }
   }
 </script>
 
@@ -48,8 +55,8 @@
     <div class="input-field" style="margin-bottom: 3rem">
       <select bind:value={patientSex}>
         <option value="" disabled selected>Choose Sex</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
+        <option value="M">Male</option>
+        <option value="F">Female</option>
       </select>
       <label class="active">Sex</label>
     </div>
