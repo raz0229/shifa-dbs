@@ -1,10 +1,52 @@
+<script context="module">
+    import { LIST_ALL_PATIENTS_QUERY } from "$lib/config/controllers";
+
+    export async function getAllPatients() {
+        try {
+            const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    query: LIST_ALL_PATIENTS_QUERY,
+                }),
+            });
+
+            const result = await response.json();
+
+            let data = [];
+            if (result && result.results) {
+                for (let row of result.results) {
+                    data.push({
+                        name: row.name,
+                        sex: row.sex,
+                        phone: row.phone,
+                        city: row.city,
+                        visits: row.total_appointments,
+                    });
+                }
+            }
+
+            return data;
+        } catch (error) {
+            console.error(
+                "Error fetching or processing appointment data:",
+                error,
+            );
+            return null; // Or handle the error as appropriate
+        }
+    }
+</script>
+
 <script>
     import { onMount, createEventDispatcher } from "svelte";
     import { browser } from "$app/environment";
-    import { accentColor, storeInfo } from "$lib/stores";
+    import { accentColor, sqlLogs } from "$lib/stores";
     import EditPatientModal from "$lib/components/EditPatientModal.svelte";
     import ViewPatientModal from "$lib/components/ViewPatientModal.svelte";
     import AddPatientModal from "./AddPatientModal.svelte";
+    import { capitalizeWords, cities } from "$lib/config/controllers";
 
     let samplePatient = {
         name: "John Doe",
@@ -49,38 +91,16 @@
         console.log("Added patient:", updated);
     }
 
-
     let color;
-    let storeInfoTemp;
     let name = "";
     let sex = "";
     let phone = "";
     let city = "";
 
-    const cities = ["New York", "London", "Tokyo", "Sydney", "Paris"];
-    export let patients = [
-        {
-            name: "John Doe",
-            sex: "Male",
-            phone: "123-456-7890",
-            city: "New York",
-            visits: 5,
-        },
-        {
-            name: "Jane Smith",
-            sex: "Female",
-            phone: "555-123-4567",
-            city: "London",
-            visits: 8,
-        },
-        {
-            name: "Kenji Tanaka",
-            sex: "Male",
-            phone: "080-1234-5678",
-            city: "Tokyo",
-            visits: 3,
-        },
-    ];
+    $: $sqlLogs;
+
+    export let patients = [];
+    let allPatients = [];
 
     function editPatient(patient) {
         console.log("Edit", patient);
@@ -107,11 +127,40 @@
     onMount(() => {
         const elems = document.querySelectorAll("select");
         M.FormSelect.init(elems);
+
+        if (browser) {
+            getAllPatients().then((data) => {
+                console.log(data);
+                allPatients = data;
+                patients = data;
+
+                const updated = [...$sqlLogs, {
+                     query: LIST_ALL_PATIENTS_QUERY,
+                     date: new Date().toString().substring(0, 21),
+                }];
+                sqlLogs.set(updated);
+                M.toast({html: '✔️ SQL Query Added to Logs'})
+            });
+        }
     });
 
     function handleSearch() {
-        console.log({ name, sex, phone, city });
-        // Implement your actual search logic here
+        patients = allPatients.filter((patient) => {
+            return (
+                (!name ||
+                    patient.name.trim().toLowerCase().includes(name.toLowerCase())) &&
+                (!sex ||
+                    patient.sex.toLowerCase().includes(sex.toLowerCase())) &&
+                (!phone || patient.phone.trim().includes(phone)) &&
+                (!city ||
+                    patient.city.toLowerCase().includes(city.toLowerCase()))
+            );
+        });
+    }
+
+    function clearSearch() {
+        name = sex = city = phone= '';
+        handleSearch()
     }
 
     onMount(() => {
@@ -121,20 +170,24 @@
 
         if (browser) {
             color = $accentColor;
-            storeInfoTemp = $storeInfo;
         }
     });
 </script>
 
- <a on:click={()=> openAddPatientModal()} style="position: fixed; bottom: 7rem; right: 20px; z-index: 100;" class="btn-floating btn-large waves-effect waves-light {color}"><i class="material-icons">add</i></a>
+<a
+    on:click={() => openAddPatientModal()}
+    style="position: fixed; bottom: 7rem; right: 20px; z-index: 100;"
+    class="btn-floating btn-large waves-effect waves-light {color}"
+    ><i class="material-icons">add</i></a
+>
 
 <!-- Edit Patient Modal Component -->
 <EditPatientModal bind:patient={selectedPatient} on:save={handleSave} />
 
 <!-- View Patient Modal -->
- <ViewPatientModal patient={samplePatient} appointments={sampleAppointments} />
+<ViewPatientModal patient={samplePatient} appointments={sampleAppointments} />
 
- <!-- Add Patient Modal -->
+<!-- Add Patient Modal -->
 <AddPatientModal bind:patient={selectedPatient} on:save={handleAdd} />
 
 <div class="form-container z-depth-2 white" style="max-width: 80rem;">
@@ -148,9 +201,9 @@
 
         <div class="input-field col s12">
             <select bind:value={sex}>
-                <option value="" disabled selected>Choose Sex</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
+                <option value="" selected>Choose Sex</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
             </select>
             <label>Sex</label>
         </div>
@@ -162,7 +215,7 @@
 
         <div class="input-field col s12">
             <select bind:value={city}>
-                <option value="" disabled selected>Select City</option>
+                <option value="" selected>Select City</option>
                 {#each cities as c}
                     <option value={c}>{c}</option>
                 {/each}
@@ -178,19 +231,35 @@
                 Search
             </button>
         </div>
+                <div class="input-field col s12">
+            <button
+                class="btn red waves-effect waves-light btn-block"
+                on:click={clearSearch}
+            >
+                Clear Filters
+            </button>
+        </div>
     </div>
 </div>
 
+
+<h6 style="margin-left: 1rem;  margin-top: 4rem;"><b>&nbsp;Patients Count: </b> {patients.length} </h6>
+
 <div
     class="list-container z-depth-1 white"
-    style="margin-bottom: 12rem; margin-top: 4rem; max-width: 80rem;"
+    style="margin-bottom: 12rem; max-width: 80rem;"
 >
+
+{#if patients.length === 0}
+<p class="red-text" style="text-align: center;"><em>No Patients! Try clearing the Search Fields</em></p>
+{/if}
+
     {#each patients as patient}
         <div class="patient-card">
             <i class="material-icons avatar">account_circle</i>
 
             <div class="patient-details">
-                <div><b>Name:</b> {patient.name}</div>
+                <div><b>Name:</b> {capitalizeWords(patient.name)}</div>
                 <div><b>Sex:</b> {patient.sex}</div>
                 <div><b>Phone:</b> {patient.phone}</div>
                 <div><b>City:</b> {patient.city}</div>

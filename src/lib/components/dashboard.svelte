@@ -244,6 +244,7 @@
                         date: new Date().toString().substring(0, 21),
                     }];
                     sqlLogs.set(updated);
+                    M.toast({html: '✔️ SQL Query Added to Logs'})
                 }
             });
 
@@ -256,6 +257,7 @@
                         date: new Date().toString().substring(0, 21),
                     }];
                     sqlLogs.set(updated);
+                    M.toast({html: '✔️ SQL Query Added to Logs'})
                 }
             });
 
@@ -268,6 +270,7 @@
                         date: new Date().toString().substring(0, 21),
                     }];
                     sqlLogs.set(updated);
+                    M.toast({html: '✔️ SQL Query Added to Logs'})
                 }
             });
         }
