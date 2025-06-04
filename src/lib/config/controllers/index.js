@@ -1,0 +1,22 @@
+import { auth } from "$lib/config/firebaseapp";
+import { onAuthStateChanged } from "firebase/auth"
+
+export const TOP_CITIES_QUERY = `SELECT p.city, COUNT(p.id) AS patient_count, (COUNT(p.id) * 100.0 / (SELECT COUNT(*) FROM Patient)) AS percentage FROM Patient AS p GROUP BY p.city ORDER BY patient_count DESC LIMIT 5;`;
+
+export const TOP_CAUSE_OF_VISITS_QUERY = `(SELECT cause_of_visit, COUNT(*) AS visit_count FROM Appointment GROUP BY cause_of_visit ORDER BY visit_count DESC LIMIT 3) UNION ALL (SELECT 'Others' AS cause_of_visit, SUM(t.visit_count) AS visit_count FROM (SELECT cause_of_visit, COUNT(*) AS visit_count FROM Appointment GROUP BY cause_of_visit) AS t WHERE t.cause_of_visit NOT IN (SELECT sq.cause_of_visit FROM (SELECT cause_of_visit FROM Appointment GROUP BY cause_of_visit ORDER BY COUNT(*) DESC LIMIT 3) AS sq)) ORDER BY CASE WHEN cause_of_visit = 'Others' THEN 1 ELSE 0 END, visit_count DESC;`;
+
+export const PAST_WEEK_APPOINTMENTS_QUERY = `SELECT DATE_FORMAT(FROM_UNIXTIME(date), '%Y-%m-%d') AS appointment_day, COUNT(*) AS appointment_count FROM Appointment WHERE date >= UNIX_TIMESTAMP(CURDATE() - INTERVAL 6 DAY) GROUP BY appointment_day ORDER BY appointment_day ASC;`;
+
+
+export const isSignedIn = async () => {
+  return new Promise(async resolve => {
+    await onAuthStateChanged(auth, (user) => {
+      if (user) {
+        resolve({ user })
+      } else {
+        resolve(null);
+      }
+
+    });
+  })
+}

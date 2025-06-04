@@ -1,0 +1,8 @@
+[{
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.thefactory.app",
+            "sha256_cert_fingerprints": ["39:90:7C:65:DD:7A:DD:02:1A:F2:87:4E:00:4E:29:67:E4:AE:98:BC:40:33:42:67:BA:A5:2B:46:B7:DE:93:3C"]
+        }
+    }]
