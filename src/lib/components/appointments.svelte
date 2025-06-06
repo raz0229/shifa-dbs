@@ -1,5 +1,34 @@
 <script context="module">
-    import { LIST_ALL_APPOINTMENTS_QUERY } from "$lib/config/controllers";
+    import {
+        LIST_ALL_APPOINTMENTS_QUERY,
+        LIST_ALL_DOCTORS_QUERY,
+    } from "$lib/config/controllers";
+
+    export async function getAllDoctors() {
+        try {
+            const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    query: LIST_ALL_DOCTORS_QUERY,
+                }),
+            });
+
+            const result = await response.json();
+
+            let data = [];
+            if (result && result.results) {
+                data = result.results;
+            }
+
+            return data;
+        } catch (error) {
+            console.error("Error fetching or processing doctors data:", error);
+            return null; // Or handle the error as appropriate
+        }
+    }
 
     export async function getAllAppointments() {
         try {
@@ -32,7 +61,7 @@
 </script>
 
 <script>
-    import { onMount, createEventDispatcher } from "svelte";
+    import { onMount, afterUpdate } from "svelte";
     import { browser } from "$app/environment";
     import { accentColor, sqlLogs } from "$lib/stores";
     import EditAppointmentModal from "$lib/components/EditAppointmentModal.svelte";
@@ -78,20 +107,12 @@
 
     let color;
     let name = "";
-    let sex = "";
     let phone = "";
     let city = "";
     let date = "";
     let doctor = "";
 
-    const doctors = [
-        "Dr. Ali Nawaz",
-        "Dr. Abdurrehman",
-        "Dr. Mirium Zain",
-        "Dr. Mujahid Saleem",
-        "Dr. Kamran",
-    ];
-
+    let doctors = [];
 
     function openEditAppointmentModal(appointment) {
         console.log("Edit", appointment);
@@ -122,8 +143,27 @@
     });
 
     function handleSearch() {
-        console.log({ name, sex, phone, city });
-        // Implement your actual search logic here
+        appointments = allAppointments.filter((appt) => {
+            return (
+                (!name ||
+                    appt.patient
+                        .trim()
+                        .toLowerCase()
+                        .includes(name.toLowerCase())) &&
+                (!date ||
+                    appt.date.toLowerCase().includes(date.toLowerCase())) &&
+                (!phone || appt.phone.trim().includes(phone)) &&
+                (!city ||
+                    appt.city.toLowerCase().includes(city.toLowerCase())) &&
+                (!doctor ||
+                    appt.doc_id == doctor)
+            );
+        });
+    }
+
+    function clearSearch() {
+        name = date = city = phone = doctor = "";
+        handleSearch();
     }
 
     onMount(() => {
@@ -138,18 +178,40 @@
                 console.log(data);
                 allAppointments = data;
                 appointments = data;
-                loading = false;
 
-                const updated = [...$sqlLogs, {
-                     query: LIST_ALL_APPOINTMENTS_QUERY,
-                     date: new Date().toString().substring(0, 21),
-                }];
+                const updated = [
+                    ...$sqlLogs,
+                    {
+                        query: LIST_ALL_APPOINTMENTS_QUERY,
+                        date: new Date().toString().substring(0, 21),
+                    },
+                ];
                 sqlLogs.set(updated);
-                M.toast({html: '✔️ SQL Query Added to Logs'})
+                M.toast({ html: "✔️ SQL Query Added to Logs" });
+
+                getAllDoctors().then((data) => {
+                    console.log("Doctors = ", data);
+                    doctors = data;
+                    loading = false;
+
+                    const updated = [
+                        ...$sqlLogs,
+                        {
+                            query: LIST_ALL_DOCTORS_QUERY,
+                            date: new Date().toString().substring(0, 21),
+                        },
+                    ];
+                    sqlLogs.set(updated);
+                    M.toast({ html: "✔️ SQL Query Added to Logs" });
+                });
             });
-            
         }
     });
+
+    afterUpdate(() => {
+        const selects = document.querySelectorAll("select");
+        M.FormSelect.init(selects);
+  });
 </script>
 
 <a
@@ -197,8 +259,8 @@
         <div class="input-field col s12">
             <select bind:value={doctor}>
                 <option value="" disabled selected>Select Doctor</option>
-                {#each doctors as c}
-                    <option value={c}>{c}</option>
+                {#each doctors as d}
+                    <option value={d.doc_id}>{d.name}</option>
                 {/each}
             </select>
             <label>Doctor</label>
@@ -212,6 +274,14 @@
                 Search
             </button>
         </div>
+        <div class="input-field col s12">
+            <button
+                class="btn red waves-effect waves-light btn-block"
+                on:click={clearSearch}
+            >
+                Clear Filters
+            </button>
+        </div>
     </div>
 </div>
 
@@ -222,74 +292,73 @@
         {#if loading}
             <div style="text-align: center;">
                 <div class="preloader-wrapper big active">
-                <div class="spinner-layer spinner-blue-only">
-                    <div class="circle-clipper left">
-                        <div class="circle"></div>
-                    </div>
-                    <div class="gap-patch">
-                        <div class="circle"></div>
-                    </div>
-                    <div class="circle-clipper right">
-                        <div class="circle"></div>
+                    <div class="spinner-layer spinner-blue-only">
+                        <div class="circle-clipper left">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="gap-patch">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="circle-clipper right">
+                            <div class="circle"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-            </div>
+        {:else if appointments.length == 0}
+            <h5 class="grey-text" style="text-align: center;">
+                No Appointments to Display
+            </h5>
         {:else}
-        
-        {#if appointments.length == 0}
-            <h5 class="grey-text" style="text-align: center;">No Appointments to Display</h5>
-        {:else}
-        {#each appointments as appt}
-            <div class="appointment-card">
-                <div class="appointment-field">
-                    <i class="material-icons">event</i>
-                    <b>Patient:</b>&nbsp; {capitalizeWords(appt.patient)}
+            {#each appointments as appt}
+                <div class="appointment-card">
+                    <div class="appointment-field">
+                        <i class="material-icons">event</i>
+                        <b>Patient:</b>&nbsp; {capitalizeWords(appt.patient)}
+                    </div>
+                    <div class="appointment-field">
+                        <i class="material-icons">event</i>
+                        <b>Time:</b>&nbsp; {formatDate(appt.date)}
+                    </div>
+                    <div class="appointment-field">
+                        <i class="material-icons">healing</i>
+                        <b>Cause of Visit:</b>&nbsp; {appt.cause}
+                    </div>
+                    <div class="appointment-field">
+                        <i class="material-icons">person</i>
+                        <b>Examined By:</b> &nbsp;{appt.doctor}
+                    </div>
+                    <div class="appointment-field">
+                        <i class="material-icons">attach_money</i>
+                        <b>Doctor's Fee:</b> &nbsp;Rs. {appt.fee}
+                    </div>
+                    <div class="appointment-field">
+                        <i class="material-icons">local_hospital</i>
+                        <b>Medical Bill:</b>&nbsp; Rs. {appt.bill}
+                    </div>
+                    <div class="appointment-field">
+                        <i class="material-icons">description</i>
+                        <b>Prescription:</b> &nbsp;{appt.prescription}
+                    </div>
+                    <div class="appointment-field">
+                        <button
+                            on:click={openEditAppointmentModal}
+                            class="btn waves-effect waves-light inside-card {color} shadow-lg text-white"
+                            style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"
+                            ><i class="reverse material-icons">edit</i>
+                            <span>Edit</span></button
+                        >
+                    </div>
+                    <div class="appointment-field">
+                        <button
+                            class="btn waves-effect waves-light inside-card red shadow-lg text-white"
+                            style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"
+                            ><i class="reverse material-icons">delete</i>
+                            <span>Delete</span></button
+                        >
+                    </div>
                 </div>
-                <div class="appointment-field">
-                    <i class="material-icons">event</i>
-                    <b>Time:</b>&nbsp; {formatDate(appt.date)}
-                </div>
-                <div class="appointment-field">
-                    <i class="material-icons">healing</i>
-                    <b>Cause of Visit:</b>&nbsp; {appt.cause}
-                </div>
-                <div class="appointment-field">
-                    <i class="material-icons">person</i>
-                    <b>Examined By:</b> &nbsp;{appt.doctor}
-                </div>
-                <div class="appointment-field">
-                    <i class="material-icons">attach_money</i>
-                    <b>Doctor's Fee:</b> &nbsp;Rs. {appt.fee}
-                </div>
-                <div class="appointment-field">
-                    <i class="material-icons">local_hospital</i>
-                    <b>Medical Bill:</b>&nbsp; Rs. {appt.bill}
-                </div>
-                <div class="appointment-field">
-                    <i class="material-icons">description</i>
-                    <b>Prescription:</b> &nbsp;{appt.prescription}
-                </div>
-                <div class="appointment-field">
-                    <button
-                        on:click={openEditAppointmentModal}
-                        class="btn waves-effect waves-light inside-card {color} shadow-lg text-white"
-                        style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"
-                        ><i class="reverse material-icons">edit</i>
-                        <span>Edit</span></button
-                    >
-                </div>
-                <div class="appointment-field">
-                    <button
-                        class="btn waves-effect waves-light inside-card red shadow-lg text-white"
-                        style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"
-                        ><i class="reverse material-icons">delete</i>
-                        <span>Delete</span></button
-                    >
-                </div>
-            </div>
-        {/each}
-        {/if}
+            {/each}
         {/if}
     </div>
 </div>
