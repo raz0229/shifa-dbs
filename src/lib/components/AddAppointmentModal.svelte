@@ -1,7 +1,7 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, createEventDispatcher } from "svelte";
   import { tick } from "svelte";
-  import { accentColor, sqlLogs } from "$lib/stores";
+  import { accentColor } from "$lib/stores";
   import { capitalizeWords } from "$lib/config/controllers";
 
   export let isLoadingPatients = false;
@@ -10,7 +10,7 @@
   export let doctors = [];
   export let patients = [];
 
-  $: $sqlLogs;
+  const dispatch = createEventDispatcher();
 
   let cause_of_visits = [
     "Seasonal Allergies",
@@ -85,46 +85,12 @@
       selectedCause.length != 0 &&
       selectedPatientId != null &&
       selectedDoctor != undefined
-    ) {
-      const query = `INSERT INTO Appointment (date, cause_of_visit, examiner, patient) VALUES (${new Date(appointmentDate).getTime() / 1000}, '${selectedCause}', ${selectedDoctor}, ${selectedPatientId});`;
-      try {
-        const response = await fetch("/api/query", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query,
-          }),
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          const updated = [
-            ...$sqlLogs,
-            {
-              query,
-              date: new Date().toString().substring(0, 21),
-            },
-          ];
-          sqlLogs.set(updated);
-          M.toast({ html: "🥳 Sucessfully added Appointment" });
-          M.toast({ html: "✔️ SQL Query Added to Logs" });
-
-          location.reload();
-        } else M.toast({ html: "❌ Oh oh! Could not add Patient" });
-      } catch (error) {
-        console.log(error);
-        M.toast({ html: "❌ Something went wrong" });
-      }
-    }
-    console.log(
-      doctor_fee,
-      appointmentDate,
+    ) dispatch("save", {
       selectedCause,
       selectedDoctor,
       selectedPatientId,
-    );
+      date: (new Date(appointmentDate).getTime()) / 1000
+    })
   }
 
   // Initialize Materialize components
