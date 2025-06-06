@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { capitalizeWords } from '$lib/config/controllers';
 
   export let patient = {
     name: 'John Doe',
@@ -8,24 +9,9 @@
     city: 'New York'
   };
 
-  export let appointments = [
-    {
-      date: '2025-06-01T10:30',
-      cause: 'Flu & Cold',
-      doctor: 'Dr. Smith',
-      fee: 500,
-      bill: 1200,
-      prescription: 'Rest, fluids, paracetamol'
-    },
-    {
-      date: '2025-05-10T15:00',
-      cause: 'Back Pain',
-      doctor: 'Dr. Jane Roe',
-      fee: 700,
-      bill: 1500,
-      prescription: 'Ibuprofen, posture correction'
-    }
-  ];
+  export let loadingAppointments = false;
+
+  export let appointments = [];
 
   let modalElem;
 
@@ -104,9 +90,9 @@
   <div class="modal-content">
     <!-- Patient Profile -->
     <div class="profile-header">
-      <i class="material-icons">account_circle</i>
+      <i class="material-icons">{ patient.sex == 'M' ? "face" : "face_3" }</i>
       <div class="profile-details">
-        <h5>{patient.name}</h5>
+        <h5>{capitalizeWords(patient.name)}</h5>
         <div class="info-line"><i class="material-icons">wc</i> {patient.sex}</div>
         <div class="info-line"><i class="material-icons">phone</i> {patient.phone}</div>
         <div class="info-line"><i class="material-icons">location_city</i> {patient.city}</div>
@@ -116,6 +102,26 @@
     <!-- Appointments List -->
     <h6 class="mt-2">Appointments</h6>
     <div class="appointments-container">
+
+      {#if appointments && appointments.length === 0}
+      <div class="red-text" style="text-align: center;"><em>No Appointments Here</em></div>
+      {/if}
+
+      {#if loadingAppointments}
+      <div style="text-align: center;">
+          <div class="preloader-wrapper big active">
+    <div class="spinner-layer spinner-blue-only">
+      <div class="circle-clipper left">
+        <div class="circle"></div>
+      </div><div class="gap-patch">
+        <div class="circle"></div>
+      </div><div class="circle-clipper right">
+        <div class="circle"></div>
+      </div>
+    </div>
+  </div>
+      </div>
+      {:else}
       {#each appointments as appt}
         <div class="appointment-card">
           <div class="appointment-field">
@@ -144,6 +150,7 @@
           </div>
         </div>
       {/each}
+      {/if}
     </div>
   </div>
 

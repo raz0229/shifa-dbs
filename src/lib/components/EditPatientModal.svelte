@@ -1,17 +1,17 @@
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
-    import { accentColor } from "$lib/stores";
+  import { onMount, createEventDispatcher, afterUpdate } from "svelte";
+  import { accentColor } from "$lib/stores";
+  import { cities } from "$lib/config/controllers";
 
   export let patient = {
-    name: '',
-    sex: '',
-    phone: '',
-    city: ''
+    name: "",
+    sex: "",
+    phone: "",
+    city: "",
   };
 
   let color;
 
-  const cities = ['New York', 'London', 'Tokyo', 'Sydney', 'Paris'];
   const dispatch = createEventDispatcher();
 
   let modalElem;
@@ -19,15 +19,35 @@
   onMount(() => {
     // Initialize Materialize modal and select
     const modal = M.Modal.init(modalElem);
-    const selects = document.querySelectorAll('select');
+    const selects = document.querySelectorAll("select");
     M.FormSelect.init(selects);
     color = $accentColor;
   });
 
   function save() {
-    dispatch('save', patient); // send updated patient to parent
-    M.Modal.getInstance(modalElem).close();
+    if (
+      patient.name.trim().length == 0 ||
+      patient.city.trim().length == 0 ||
+      patient.phone.trim().length == 0 ||
+      patient.sex.trim().length == 0
+    )
+      M.toast({ html: "❌ All fields are required" });
+    else {
+      dispatch("save", {
+        id: patient.id,
+        name: patient.name.trim().toLowerCase(),
+        sex: patient.sex.trim(),
+        phone: patient.phone.trim(),
+        city: patient.city.trim(),
+      }); // send updated patient to parent
+      M.Modal.getInstance(modalElem).close();
+    }
   }
+
+  afterUpdate(() => {
+        const selects = document.querySelectorAll("select");
+        M.FormSelect.init(selects);
+  });
 </script>
 
 <!-- Modal Structure -->
@@ -41,10 +61,10 @@
     </div>
 
     <div class="input-field" style="margin-bottom: 3rem">
-      <select bind:value={patient.sex}>
-        <option value="" disabled selected>Choose Sex</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
+      <select bind:value={ patient.sex }>
+        <option value="" disabled>Choose Sex</option>
+        <option value="M">Male</option>
+        <option value="F">Female</option>
       </select>
       <label class="active">Sex</label>
     </div>

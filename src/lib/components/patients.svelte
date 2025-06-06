@@ -50,24 +50,9 @@
     import ConfirmModal from "./ConfirmModal.svelte";
     import { capitalizeWords, cities } from "$lib/config/controllers";
 
-    let sampleAppointments = [
-        {
-            date: "2025-06-01T10:30",
-            cause: "Flu",
-            doctor: "Dr. Adams",
-            fee: 500,
-            bill: 1000,
-            prescription: "Rest, fluids",
-        },
-        {
-            date: "2025-05-21T14:00",
-            cause: "Headache",
-            doctor: "Dr. Brian",
-            fee: 400,
-            bill: 850,
-            prescription: "Ibuprofen",
-        },
-    ];
+    let sampleAppointments = [];
+
+    let loadingAppointments = false;
 
     let selectedPatient = {
         name: "John Doe",
@@ -76,9 +61,40 @@
         city: "New York",
     };
 
-    function handleSave(event) {
-        const updated = event.detail;
-        console.log("Saved patient:", updated);
+    async function handleSave(event) {
+        const patient = event.detail;
+        const query = `UPDATE Patient SET name = '${patient.name}', sex = '${patient.sex}', phone = '${patient.phone}', city = '${patient.city}' WHERE id = ${patient.id};`
+        try {
+            const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    query
+                }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                const updated = [...$sqlLogs, {
+                     query,
+                     date: new Date().toString().substring(0, 21),
+                }];
+                sqlLogs.set(updated);
+                M.toast({html: '🥳 Sucessfully updated a Patient'})
+                M.toast({html: '✔️ SQL Query Added to Logs'})
+                
+                patients = patients.map(obj => obj.id === patient.id ? patient : obj);
+                allPatients = allPatients.map(obj => obj.id === patient.id ? patient : obj);
+
+                patients = patients
+            } else 
+            M.toast({html: '❌ Oh oh! Could not update Patient'})
+        } catch (error) {
+            console.log(error);
+            M.toast({html: '❌ Something went wrong'})
+        }
     }
 
     async function handleAdd(event) {
@@ -127,9 +143,9 @@
     let allPatients = [];
 
     function editPatient(patient) {
-        console.log("Edit", patient);
         const modalElem = document.getElementById("edit-patient-modal");
         M.Modal.getInstance(modalElem).open();
+        selectedPatient = patient
     }
 
     function openAddPatientModal() {
@@ -137,10 +153,55 @@
         M.Modal.getInstance(modalElem).open();
     }
 
-    function viewPatient(patient) {
-        console.log("View", patient);
+    async function viewPatient(patient) {
         const modalElem = document.getElementById("view-patient-modal");
         M.Modal.getInstance(modalElem).open();
+        selectedPatient = patient;
+        loadingAppointments = true;
+        const query = `SELECT A.ap_id, FROM_UNIXTIME(A.date) AS appointment_datetime, A.cause_of_visit, D.name AS doctor_name, D.fee AS doctor_fee, P.name AS prescription_name, P.fee AS prescription_fee FROM Appointment AS A LEFT JOIN Doctor AS D ON A.examiner = D.doc_id LEFT JOIN Prescription AS P ON A.prescription = P.pres_id WHERE A.patient = ${selectedPatient.id} ORDER BY A.date DESC;`;
+        try {
+            const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    query
+                }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                console.log(result.results)
+                sampleAppointments = []
+                const updated = [...$sqlLogs, {
+                     query,
+                     date: new Date().toString().substring(0, 21),
+                }];
+                sqlLogs.set(updated);
+                M.toast({html: '✔️ SQL Query Added to Logs'})
+                result.results.forEach(res => {
+                    sampleAppointments.push({
+                        date: res.appointment_datetime,
+                        cause: res.cause_of_visit,
+                        doctor: capitalizeWords(res.doctor_name),
+                        fee: res.doctor_fee,
+                        bill: res.prescription_fee,
+                        prescription: capitalizeWords(res.prescription_name),
+                    })
+                });
+
+                sampleAppointments = sampleAppointments
+
+
+            } else 
+            M.toast({html: '❌ Could not fetch appointments'})
+        } catch (error) {
+            console.log(error);
+            M.toast({html: '❌ Something went wrong'})
+        }
+
+        loadingAppointments = false;
     }
 
     function openDeletePatientModal(patient) {
@@ -250,10 +311,10 @@
 <ConfirmModal onDelete={() => deletePatient()} />
 
 <!-- Edit Patient Modal Component -->
-<EditPatientModal bind:patient={selectedPatient} on:save={handleSave} />
+<EditPatientModal patient={selectedPatient} on:save={handleSave} />
 
 <!-- View Patient Modal -->
-<ViewPatientModal appointments={sampleAppointments} />
+<ViewPatientModal bind:loadingAppointments patient={selectedPatient} appointments={sampleAppointments} />
 
 <!-- Add Patient Modal -->
 <AddPatientModal on:save={handleAdd} />
