@@ -1,9 +1,46 @@
+<script context="module">
+    import { LIST_ALL_APPOINTMENTS_QUERY } from "$lib/config/controllers";
+
+    export async function getAllAppointments() {
+        try {
+            const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    query: LIST_ALL_APPOINTMENTS_QUERY,
+                }),
+            });
+
+            const result = await response.json();
+
+            let data = [];
+            if (result && result.results) {
+                data = result.results;
+            }
+
+            return data;
+        } catch (error) {
+            console.error(
+                "Error fetching or processing appointment data:",
+                error,
+            );
+            return null; // Or handle the error as appropriate
+        }
+    }
+</script>
+
 <script>
     import { onMount, createEventDispatcher } from "svelte";
     import { browser } from "$app/environment";
-    import { accentColor, storeInfo } from "$lib/stores";
+    import { accentColor, sqlLogs } from "$lib/stores";
     import EditAppointmentModal from "$lib/components/EditAppointmentModal.svelte";
     import AddAppointmentModal from "./AddAppointmentModal.svelte";
+    import ConfirmModal from "./ConfirmModal.svelte";
+    import { capitalizeWords, cities } from "$lib/config/controllers";
+
+    let loading = false;
 
     let samplePatient = {
         name: "John Doe",
@@ -12,26 +49,10 @@
         city: "New York",
     };
 
-    let appointments = [
-        {
-            patient: "Talha Abid",
-            date: "2025-06-01T10:30",
-            cause: "Flu & Cold",
-            doctor: "Dr. Smith",
-            fee: 500,
-            bill: 1200,
-            prescription: "Rest, fluids, paracetamol",
-        },
-        {
-            patient: "Ali Adam",
-            date: "2025-05-10T15:00",
-            cause: "Back Pain",
-            doctor: "Dr. Jane Roe",
-            fee: 700,
-            bill: 1500,
-            prescription: "Ibuprofen, posture correction",
-        },
-    ];
+    let appointments = [];
+    let allAppointments = [];
+
+    $: $sqlLogs;
 
     let selectedPatient = {
         name: "John Doe",
@@ -56,7 +77,6 @@
     }
 
     let color;
-    let storeInfoTemp;
     let name = "";
     let sex = "";
     let phone = "";
@@ -64,7 +84,6 @@
     let date = "";
     let doctor = "";
 
-    const cities = ["New York", "London", "Tokyo", "Sydney", "Paris"];
     const doctors = [
         "Dr. Ali Nawaz",
         "Dr. Abdurrehman",
@@ -73,29 +92,6 @@
         "Dr. Kamran",
     ];
 
-    export let patients = [
-        {
-            name: "John Doe",
-            sex: "Male",
-            phone: "123-456-7890",
-            city: "New York",
-            visits: 5,
-        },
-        {
-            name: "Jane Smith",
-            sex: "Female",
-            phone: "555-123-4567",
-            city: "London",
-            visits: 8,
-        },
-        {
-            name: "Kenji Tanaka",
-            sex: "Male",
-            phone: "080-1234-5678",
-            city: "Tokyo",
-            visits: 3,
-        },
-    ];
 
     function openEditAppointmentModal(appointment) {
         console.log("Edit", appointment);
@@ -104,7 +100,7 @@
     }
 
     function openAddAppointmentModal() {
-        console.log('add appointment')
+        console.log("add appointment");
         const modalElem = document.getElementById("add-appointment-modal");
         M.Modal.getInstance(modalElem).open();
     }
@@ -136,8 +132,22 @@
         M.FormSelect.init(document.querySelectorAll("select"));
 
         if (browser) {
+            loading = true;
             color = $accentColor;
-            storeInfoTemp = $storeInfo;
+            getAllAppointments().then((data) => {
+                console.log(data);
+                allAppointments = data;
+                appointments = data;
+                loading = false;
+
+                const updated = [...$sqlLogs, {
+                     query: LIST_ALL_APPOINTMENTS_QUERY,
+                     date: new Date().toString().substring(0, 21),
+                }];
+                sqlLogs.set(updated);
+                M.toast({html: '✔️ SQL Query Added to Logs'})
+            });
+            
         }
     });
 </script>
@@ -205,50 +215,84 @@
     </div>
 </div>
 
-    <!-- Appointments List -->
+<!-- Appointments List -->
 <div>
     <h4 style="margin-left: 2rem;" class="mt-2">Appointments</h4>
     <div class="appointments-container" style="margin-bottom: 8rem;">
-      {#each appointments as appt}
-        <div class="appointment-card">
-        <div class="appointment-field">
-            <i class="material-icons">event</i>
-            <b>Patient:</b>&nbsp; {appt.patient}
-          </div>
-          <div class="appointment-field">
-            <i class="material-icons">event</i>
-            <b>Time:</b>&nbsp; {formatDate(appt.date)}
-          </div>
-          <div class="appointment-field">
-            <i class="material-icons">healing</i>
-            <b>Cause of Visit:</b>&nbsp; {appt.cause}
-          </div>
-          <div class="appointment-field">
-            <i class="material-icons">person</i>
-            <b>Examined By:</b> &nbsp;{appt.doctor}
-          </div>
-          <div class="appointment-field">
-            <i class="material-icons">attach_money</i>
-            <b>Doctor's Fee:</b> &nbsp;Rs. {appt.fee}
-          </div>
-          <div class="appointment-field">
-            <i class="material-icons">local_hospital</i>
-            <b>Medical Bill:</b>&nbsp; Rs. {appt.bill}
-          </div>
-          <div class="appointment-field">
-            <i class="material-icons">description</i>
-            <b>Prescription:</b> &nbsp;{appt.prescription}
-          </div>
-          <div class="appointment-field">
-            <button on:click={openEditAppointmentModal} class="btn waves-effect waves-light inside-card {color} shadow-lg text-white" style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"><i class="reverse material-icons">edit</i> <span>Edit</span></button>
-          </div>
-          <div class="appointment-field">
-            <button class="btn waves-effect waves-light inside-card red shadow-lg text-white" style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"><i class="reverse material-icons">delete</i> <span>Delete</span></button>
-          </div>
-        </div>
-      {/each}
+        {#if loading}
+            <div style="text-align: center;">
+                <div class="preloader-wrapper big active">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left">
+                        <div class="circle"></div>
+                    </div>
+                    <div class="gap-patch">
+                        <div class="circle"></div>
+                    </div>
+                    <div class="circle-clipper right">
+                        <div class="circle"></div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        {:else}
+        
+        {#if appointments.length == 0}
+            <h5 class="grey-text" style="text-align: center;">No Appointments to Display</h5>
+        {:else}
+        {#each appointments as appt}
+            <div class="appointment-card">
+                <div class="appointment-field">
+                    <i class="material-icons">event</i>
+                    <b>Patient:</b>&nbsp; {capitalizeWords(appt.patient)}
+                </div>
+                <div class="appointment-field">
+                    <i class="material-icons">event</i>
+                    <b>Time:</b>&nbsp; {formatDate(appt.date)}
+                </div>
+                <div class="appointment-field">
+                    <i class="material-icons">healing</i>
+                    <b>Cause of Visit:</b>&nbsp; {appt.cause}
+                </div>
+                <div class="appointment-field">
+                    <i class="material-icons">person</i>
+                    <b>Examined By:</b> &nbsp;{appt.doctor}
+                </div>
+                <div class="appointment-field">
+                    <i class="material-icons">attach_money</i>
+                    <b>Doctor's Fee:</b> &nbsp;Rs. {appt.fee}
+                </div>
+                <div class="appointment-field">
+                    <i class="material-icons">local_hospital</i>
+                    <b>Medical Bill:</b>&nbsp; Rs. {appt.bill}
+                </div>
+                <div class="appointment-field">
+                    <i class="material-icons">description</i>
+                    <b>Prescription:</b> &nbsp;{appt.prescription}
+                </div>
+                <div class="appointment-field">
+                    <button
+                        on:click={openEditAppointmentModal}
+                        class="btn waves-effect waves-light inside-card {color} shadow-lg text-white"
+                        style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"
+                        ><i class="reverse material-icons">edit</i>
+                        <span>Edit</span></button
+                    >
+                </div>
+                <div class="appointment-field">
+                    <button
+                        class="btn waves-effect waves-light inside-card red shadow-lg text-white"
+                        style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"
+                        ><i class="reverse material-icons">delete</i>
+                        <span>Delete</span></button
+                    >
+                </div>
+            </div>
+        {/each}
+        {/if}
+        {/if}
     </div>
-  </div>
+</div>
 
 <style>
     .form-container {
@@ -309,47 +353,47 @@
         line-height: 36px;
     }
 
-      .appointments-container {
-    max-height: 300px;
-    overflow-y: auto;
+    .appointments-container {
+        max-height: 300px;
+        overflow-y: auto;
 
-    padding: 1rem;
-  }
+        padding: 1rem;
+    }
 
-  .appointment-card {
-    display: inline-block; /* key for horizontal scroll */
-    vertical-align: top;
-    width: 300px; /* or any fixed width */
-    margin-right: 1rem;
-    margin-bottom: 1rem;
-    background: #f9f9f9;
-    padding: 1rem;
-    border-left: 4px solid #26a69a;
-    border-radius: 6px;
-    white-space: normal; /* allow internal wrapping */
-  }
+    .appointment-card {
+        display: inline-block; /* key for horizontal scroll */
+        vertical-align: top;
+        width: 300px; /* or any fixed width */
+        margin-right: 1rem;
+        margin-bottom: 1rem;
+        background: #f9f9f9;
+        padding: 1rem;
+        border-left: 4px solid #26a69a;
+        border-radius: 6px;
+        white-space: normal; /* allow internal wrapping */
+    }
 
-  .appointment-field {
-    display: flex;
-    align-items: center;
-    margin: 0.3rem 0;
-  }
+    .appointment-field {
+        display: flex;
+        align-items: center;
+        margin: 0.3rem 0;
+    }
 
-  .appointment-field i {
-    margin-right: 0.5rem;
-    color: #42a5f5;
-  }
+    .appointment-field i {
+        margin-right: 0.5rem;
+        color: #42a5f5;
+    }
 
-.appointment-field  i.reverse {
-    color: #fff;
-    margin: 0;
-  }
+    .appointment-field i.reverse {
+        color: #fff;
+        margin: 0;
+    }
 
-  button.inside-card {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0.4rem;
-    gap: 0.5rem;
-  }
+    button.inside-card {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0.4rem;
+        gap: 0.5rem;
+    }
 </style>

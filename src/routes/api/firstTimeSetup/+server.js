@@ -41,11 +41,19 @@ export async function POST({ request }) {
     date INT,
     cause_of_visit TEXT,
     examiner INT,
-    prescription INT,
     patient INT,
     FOREIGN KEY (examiner) REFERENCES Doctor(doc_id),
-    FOREIGN KEY (prescription) REFERENCES Prescription(pres_id),
     FOREIGN KEY (patient) REFERENCES Patient(id) ON DELETE CASCADE
+);`,
+
+
+`CREATE TABLE AppointmentPrescription (
+    ap_id INT NOT NULL,
+    pres_id INT NOT NULL,
+
+    PRIMARY KEY (ap_id, pres_id),
+    FOREIGN KEY (ap_id) REFERENCES Appointment(ap_id) ON DELETE CASCADE,
+    FOREIGN KEY (pres_id) REFERENCES Prescription(pres_id) ON DELETE CASCADE
 );`,
 
             // Insert Doctor Data
@@ -71,12 +79,24 @@ export async function POST({ request }) {
 (5, 'M', '03105566778', 'Imran Khan', 'Peshawar');`,
 
             // Insert Appointment Data
-            `INSERT INTO Appointment (ap_id, date, cause_of_visit, examiner, prescription, patient) VALUES
-(1001, 1749021055, 'Fever and Sore Throat', 101, 201, 1),
-(1002, 1749021100, 'Routine Check-up', 102, 203, 2),
-(1003, 1749021150, 'Headache and Nausea', 103, 202, 3),
-(1004, 1749021200, 'Seasonal Allergies', 104, 204, 4),
-(1005, 1749021250, 'Follow-up for Flu', 101, 201, 5);`
+            `INSERT INTO Appointment (ap_id, date, cause_of_visit, examiner, patient) VALUES
+(1001, 1749021055, 'Fever and Sore Throat', 101, 1),
+(1002, 1749021100, 'Routine Check-up', 102, 2),
+(1003, 1749021150, 'Headache and Nausea', 103, 3),
+(1004, 1749021200, 'Seasonal Allergies', 104, 4),
+(1005, 1749021250, 'Follow-up for Flu', 101, 5);`,
+
+// Insert Prescriptions into Appointments 
+`INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1001, 201);
+INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1001, 202);
+INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1002, 203);
+INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1003, 202);
+INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1003, 203);
+INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1003, 204);
+INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1004, 204);
+INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1005, 202);`
+
+
         ];
 
         for (const q of queries) {
