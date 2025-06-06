@@ -2,6 +2,7 @@
     import {
         LIST_ALL_APPOINTMENTS_QUERY,
         LIST_ALL_DOCTORS_QUERY,
+        LIST_ALL_PATIENTS_QUERY
     } from "$lib/config/controllers";
 
     export async function getAllDoctors() {
@@ -26,6 +27,35 @@
             return data;
         } catch (error) {
             console.error("Error fetching or processing doctors data:", error);
+            return null; // Or handle the error as appropriate
+        }
+    }
+
+        export async function getAllPatients() {
+        try {
+            const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    query: LIST_ALL_PATIENTS_QUERY,
+                }),
+            });
+
+            const result = await response.json();
+
+            let data = [];
+            if (result && result.results) {
+                data = result.results
+            }
+
+            return data;
+        } catch (error) {
+            console.error(
+                "Error fetching or processing appointment data:",
+                error,
+            );
             return null; // Or handle the error as appropriate
         }
     }
@@ -70,20 +100,14 @@
     import { capitalizeWords, cities } from "$lib/config/controllers";
 
     let loading = false;
-
-    let samplePatient = {
-        name: "John Doe",
-        sex: "Male",
-        phone: "123-456-7890",
-        city: "New York",
-    };
+    let isLoadingPatients = false;
 
     let appointments = [];
     let allAppointments = [];
 
     $: $sqlLogs;
 
-    let selectedPatient = {
+    let selectedAppointment = {
         name: "John Doe",
         sex: "Male",
         phone: "123-456-7890",
@@ -113,6 +137,7 @@
     let doctor = "";
 
     let doctors = [];
+    let patients = [];
 
     function openEditAppointmentModal(appointment) {
         console.log("Edit", appointment);
@@ -121,20 +146,65 @@
     }
 
     function openAddAppointmentModal() {
-        console.log("add appointment");
+        isLoadingPatients = true;
         const modalElem = document.getElementById("add-appointment-modal");
         M.Modal.getInstance(modalElem).open();
+        getAllPatients().then((data) => {
+            patients = data;
+            const updated = [...$sqlLogs, {
+                 query: LIST_ALL_PATIENTS_QUERY,
+                 date: new Date().toString().substring(0, 21),
+            }];
+            sqlLogs.set(updated);
+            M.toast({html: '✔️ SQL Query Added to Logs'})
+            isLoadingPatients = false;
+        });
     }
 
-    function viewPatient(patient) {
-        console.log("View", patient);
-        const modalElem = document.getElementById("view-patient-modal");
-        M.Modal.getInstance(modalElem).open();
-    }
+    const deleteAppointment = async () => {
+        if (selectedAppointment) {
+            const query = `DELETE FROM Appointment WHERE ap_id = ${selectedAppointment.ap_id};`;
+            try {
+                const response = await fetch("/api/query", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        query,
+                    }),
+                });
 
-    function deletePatient(patient) {
-        console.log("Delete", patient);
-    }
+                const result = await response.json();
+                if (result.success) {
+                    const updated = [
+                        ...$sqlLogs,
+                        {
+                            query,
+                            date: new Date().toString().substring(0, 21),
+                        },
+                    ];
+                    sqlLogs.set(updated);
+                    M.toast({ html: "✅ Appointment Deleted" });
+                    M.toast({ html: "✔️ SQL Query Added to Logs" });
+
+                    let index = appointments.findIndex(
+                        (p) => p.ap_id == selectedAppointment.ap_id,
+                    );
+                    if (index !== -1) appointments.splice(index, 1);
+                    allAppointments.splice(
+                        allAppointments.findIndex((p) => p.id == selectedAppointment.ap_id),
+                        1,
+                    );
+
+                    appointments = appointments;
+                } else M.toast({ html: "❌ Oh oh! Could not delete Appointment" });
+            } catch (error) {
+                console.log(error);
+                M.toast({ html: "❌ Something went wrong" });
+            }
+        }
+    };
 
     // Initialize Materialize select after mount
     onMount(() => {
@@ -155,10 +225,15 @@
                 (!phone || appt.phone.trim().includes(phone)) &&
                 (!city ||
                     appt.city.toLowerCase().includes(city.toLowerCase())) &&
-                (!doctor ||
-                    appt.doc_id == doctor)
+                (!doctor || appt.doc_id == doctor)
             );
         });
+    }
+
+    function openDeleteAppointmentModal(appt) {
+        const modalElem = document.getElementById("confirm-modal");
+        M.Modal.getInstance(modalElem).open();
+        selectedAppointment = appt;
     }
 
     function clearSearch() {
@@ -211,7 +286,7 @@
     afterUpdate(() => {
         const selects = document.querySelectorAll("select");
         M.FormSelect.init(selects);
-  });
+    });
 </script>
 
 <a
@@ -221,11 +296,14 @@
     ><i class="material-icons">add</i></a
 >
 
+<!-- Confirm Delete Modal -->
+<ConfirmModal onDelete={() => deleteAppointment()} />
+
 <!-- Edit Patient Modal Component -->
-<EditAppointmentModal bind:patient={selectedPatient} on:save={handleSave} />
+<EditAppointmentModal bind:patient={selectedAppointment} on:save={handleSave} />
 
 <!-- Add Patient Modal -->
-<AddAppointmentModal bind:patient={selectedPatient} on:save={handleAdd} />
+<AddAppointmentModal bind:isLoadingPatients bind:doctors bind:patients on:save={handleAdd} />
 
 <div class="form-container z-depth-2 white" style="max-width: 80rem;">
     <h5 class="form-title">Appointment Search</h5>
@@ -351,6 +429,7 @@
                     </div>
                     <div class="appointment-field">
                         <button
+                            on:click={()=>openDeleteAppointmentModal(appt)}
                             class="btn waves-effect waves-light inside-card red shadow-lg text-white"
                             style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"
                             ><i class="reverse material-icons">delete</i>

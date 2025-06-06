@@ -237,7 +237,7 @@
                     let index = patients.findIndex(p => p.id == selectedPatient.id);
                     if (index !== -1)
                         patients.splice(index, 1)
-                    allPatients.splice(allPatients.findIndex(p => p.id == 3), 1)
+                    allPatients.splice(allPatients.findIndex(p => p.id == selectedPatient.id), 1)
 
                     patients = patients
                 } else 
@@ -253,6 +253,7 @@
     onMount(() => {
         const elems = document.querySelectorAll("select");
         M.FormSelect.init(elems);
+        
 
         if (browser) {
             getAllPatients().then((data) => {
