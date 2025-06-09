@@ -158,7 +158,7 @@
         M.Modal.getInstance(modalElem).open();
         selectedPatient = patient;
         loadingAppointments = true;
-        const query = `SELECT A.ap_id, FROM_UNIXTIME(A.date) AS appointment_datetime, A.cause_of_visit, D.name AS doctor_name, D.fee AS doctor_fee, P.name AS prescription_name, P.fee AS prescription_fee FROM Appointment AS A LEFT JOIN Doctor AS D ON A.examiner = D.doc_id LEFT JOIN Prescription AS P ON A.prescription = P.pres_id WHERE A.patient = ${selectedPatient.id} ORDER BY A.date DESC;`;
+        const query = `SELECT A.ap_id, FROM_UNIXTIME(A.date) AS appointment_datetime, A.cause_of_visit, D.name AS doctor_name, D.fee AS doctor_fee, GROUP_CONCAT(Pr.name ORDER BY Pr.name SEPARATOR ', ') AS prescription_names, SUM(Pr.fee) AS total_prescription_fee FROM Appointment AS A LEFT JOIN Doctor AS D ON A.examiner = D.doc_id LEFT JOIN AppointmentPrescription AS AP ON A.ap_id = AP.ap_id LEFT JOIN Prescription AS Pr ON AP.pres_id = Pr.pres_id WHERE A.patient = ${selectedPatient.id} GROUP BY A.ap_id, A.date, A.cause_of_visit, D.name, D.fee ORDER BY A.date DESC;`;
         try {
             const response = await fetch("/api/query", {
                 method: "POST",

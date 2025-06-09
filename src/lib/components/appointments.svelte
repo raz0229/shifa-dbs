@@ -3,7 +3,34 @@
         LIST_ALL_APPOINTMENTS_QUERY,
         LIST_ALL_DOCTORS_QUERY,
         LIST_ALL_PATIENTS_QUERY,
+        LIST_ALL_PRESCRIPTIONS_QUERY,
     } from "$lib/config/controllers";
+
+    export async function getAllPrescriptions() {
+        try {
+            const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    query: LIST_ALL_PRESCRIPTIONS_QUERY,
+                }),
+            });
+
+            const result = await response.json();
+
+            let data = [];
+            if (result && result.results) {
+                data = result.results;
+            }
+
+            return data;
+        } catch (error) {
+            console.error("Error fetching or processing doctors data:", error);
+            return null; // Or handle the error as appropriate
+        }
+    }
 
     export async function getAllDoctors() {
         try {
@@ -79,6 +106,10 @@
                 data = result.results;
             }
 
+            for (let ap of data) {
+                ap.dateString = new Date(ap.date * 1000).toLocaleString();
+            }
+
             return data;
         } catch (error) {
             console.error(
@@ -114,11 +145,6 @@
         city: "New York",
     };
 
-    function formatDate(datetime) {
-        const date = new Date(datetime);
-        return date.toLocaleString();
-    }
-
     function handleSave(event) {
         const updated = event.detail;
         console.log("Saved patient:", updated);
@@ -152,7 +178,9 @@
                 M.toast({ html: "🥳 Appointment added! Reload" });
                 M.toast({ html: "✔️ SQL Query Added to Logs" });
 
-                const modalElem = document.getElementById("add-appointment-modal");
+                const modalElem = document.getElementById(
+                    "add-appointment-modal",
+                );
                 M.Modal.getInstance(modalElem).close();
             } else M.toast({ html: "❌ Oh oh! Could not add Patient" });
         } catch (error) {
@@ -169,12 +197,23 @@
     let doctor = "";
 
     let doctors = [];
+    let prescriptions = [];
     let patients = [];
+    let addedPrescriptions;
 
     function openEditAppointmentModal(appointment) {
-        console.log("Edit", appointment);
+        selectedAppointment = appointment;
+        selectedAppointment.patient = capitalizeWords(
+            selectedAppointment.patient,
+        );
+        addedPrescriptions = selectedAppointment.prescriptions ? selectedAppointment.prescriptions.split(',').map(Number) : [];
         const modalElem = document.getElementById("edit-appointment-modal");
         M.Modal.getInstance(modalElem).open();
+        // selectedDoctor = doctors.find(
+        //     (doc) => doc.doc_id == appointment.doc_id,
+        // );
+        console.log("here: ", appointment);
+
     }
 
     function openAddAppointmentModal() {
@@ -259,7 +298,9 @@
                         .toLowerCase()
                         .includes(name.toLowerCase())) &&
                 (!date ||
-                    appt.date.toLowerCase().includes(date.toLowerCase())) &&
+                    appt.dateString.includes(
+                        new Date(date).toLocaleDateString(),
+                    )) &&
                 (!phone || appt.phone.trim().includes(phone)) &&
                 (!city ||
                     appt.city.toLowerCase().includes(city.toLowerCase())) &&
@@ -305,7 +346,6 @@
                 getAllDoctors().then((data) => {
                     console.log("Doctors = ", data);
                     doctors = data;
-                    loading = false;
 
                     const updated = [
                         ...$sqlLogs,
@@ -316,6 +356,22 @@
                     ];
                     sqlLogs.set(updated);
                     M.toast({ html: "✔️ SQL Query Added to Logs" });
+
+                    getAllPrescriptions().then((data) => {
+                        console.log("Prescriptions = ", data);
+                        prescriptions = data;
+                        loading = false;
+
+                        const updated = [
+                            ...$sqlLogs,
+                            {
+                                query: LIST_ALL_PRESCRIPTIONS_QUERY,
+                                date: new Date().toString().substring(0, 21),
+                            },
+                        ];
+                        sqlLogs.set(updated);
+                        M.toast({ html: "✔️ SQL Query Added to Logs" });
+                    });
                 });
             });
         }
@@ -338,7 +394,13 @@
 <ConfirmModal onDelete={() => deleteAppointment()} />
 
 <!-- Edit Appointment Modal Component -->
-<EditAppointmentModal bind:patient={selectedAppointment} on:save={handleSave} />
+<EditAppointmentModal
+    bind:appointment={selectedAppointment}
+    {doctors}
+    {prescriptions}
+    {addedPrescriptions}
+    on:save={handleSave}
+/>
 
 <!-- Add Appointment Modal -->
 <AddAppointmentModal
@@ -439,7 +501,7 @@
                     </div>
                     <div class="appointment-field">
                         <i class="material-icons">event</i>
-                        <b>Time:</b>&nbsp; {formatDate(appt.date)}
+                        <b>Time:</b>&nbsp; {appt.dateString}
                     </div>
                     <div class="appointment-field">
                         <i class="material-icons">healing</i>
@@ -463,7 +525,7 @@
                     </div>
                     <div class="appointment-field">
                         <button
-                            on:click={openEditAppointmentModal}
+                            on:click={() => openEditAppointmentModal(appt)}
                             class="btn waves-effect waves-light inside-card {color} shadow-lg text-white"
                             style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; border: none;"
                             ><i class="reverse material-icons">edit</i>

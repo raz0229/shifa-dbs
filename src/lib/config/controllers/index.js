@@ -9,9 +9,11 @@ export const PAST_WEEK_APPOINTMENTS_QUERY = `SELECT DATE_FORMAT(FROM_UNIXTIME(da
 
 export const LIST_ALL_PATIENTS_QUERY = `SELECT P.id, P.name, P.sex, P.phone, P.city, COUNT(A.ap_id) AS total_appointments FROM Patient AS P LEFT JOIN Appointment AS A ON P.id = A.patient GROUP BY P.id, P.name, P.sex, P.phone, P.city ORDER BY P.name;`
 
-export const LIST_ALL_APPOINTMENTS_QUERY = `SELECT A.ap_id, FROM_UNIXTIME(A.date) AS date, A.cause_of_visit AS cause, D.name AS doctor, D.doc_id as doc_id, D.fee AS fee, P.name AS patient, P.phone AS phone, P.city AS city, GROUP_CONCAT(Pr.name SEPARATOR ', ') AS prescription, SUM(Pr.fee) AS bill FROM Appointment AS A JOIN Doctor AS D ON A.examiner = D.doc_id JOIN Patient AS P ON A.patient = P.id LEFT JOIN AppointmentPrescription AS AP ON A.ap_id = AP.ap_id LEFT JOIN Prescription AS Pr ON AP.pres_id = Pr.pres_id GROUP BY A.ap_id, A.date, A.cause_of_visit, D.name, P.name ORDER BY A.date DESC`;
+export const LIST_ALL_APPOINTMENTS_QUERY = `SELECT A.ap_id, A.date AS date, A.cause_of_visit AS cause, D.name AS doctor, D.doc_id as doc_id, D.fee AS fee, P.name AS patient, P.phone AS phone, P.city AS city, GROUP_CONCAT(Pr.pres_id SEPARATOR ',') AS prescriptions, GROUP_CONCAT(Pr.name SEPARATOR ', ') AS prescription, SUM(Pr.fee) AS bill FROM Appointment AS A JOIN Doctor AS D ON A.examiner = D.doc_id JOIN Patient AS P ON A.patient = P.id LEFT JOIN AppointmentPrescription AS AP ON A.ap_id = AP.ap_id LEFT JOIN Prescription AS Pr ON AP.pres_id = Pr.pres_id GROUP BY A.ap_id, A.date, A.cause_of_visit, D.name, P.name ORDER BY A.date DESC`;
 
 export const LIST_ALL_DOCTORS_QUERY = `SELECT * FROM Doctor`;
+
+export const LIST_ALL_PRESCRIPTIONS_QUERY = `SELECT * FROM Prescription`;
 
 export const isSignedIn = async () => {
   return new Promise(async resolve => {
@@ -26,7 +28,27 @@ export const isSignedIn = async () => {
   })
 }
 
+export const toDatetimeLocal = (inputStr) => {
+  const date = new Date(inputStr);
+  if (isNaN(date)) {
+    return "2000-01-01T00:00:00"
+  }
+
+  const pad = (num) => String(num).padStart(2, '0');
+
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1); // Months are zero-based
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
+
 export const capitalizeWords = (str) => {
+  if (str == undefined) return "None"
   return str.replace(/\b\w/g, char => char.toUpperCase());
 }
 
