@@ -186,7 +186,7 @@
                         cause: res.cause_of_visit,
                         doctor: capitalizeWords(res.doctor_name),
                         fee: res.doctor_fee,
-                        bill: res.prescription_fee,
+                        bill: res.total_prescription_fee ? res.total_prescription_fee : 0,
                         prescription: capitalizeWords(res.prescription_name),
                     })
                 });
@@ -234,12 +234,13 @@
                     M.toast({html: '✅ Patient Deleted'})
                     M.toast({html: '✔️ SQL Query Added to Logs'})
                     
-                    let index = patients.findIndex(p => p.id == selectedPatient.id);
+                    let index = allPatients.findIndex(p => p.id == selectedPatient.id);
                     if (index !== -1)
-                        patients.splice(index, 1)
-                    allPatients.splice(allPatients.findIndex(p => p.id == selectedPatient.id), 1)
-
-                    patients = patients
+                        allPatients.splice(index, 1)
+                    
+                    //allPatients.splice(allPatients.findIndex(p => p.id == selectedPatient.id), 1)
+                    clearSearch();
+                    //patients = patients
                 } else 
                 M.toast({html: '❌ Oh oh! Could not delete Patient'})
             } catch (error) {

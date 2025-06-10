@@ -1,20 +1,22 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, createEventDispatcher } from "svelte";
   import { tick } from "svelte";
-  import { accentColor } from "$lib/stores";
+  import { accentColor, sqlLogs } from "$lib/stores";
   import { toDatetimeLocal } from "$lib/config/controllers";
 
-  let visited = false;
+  export let visited = false;
   export let appointment;
   export let doctors = [];
   export let prescriptions = [];
+
+  const dispatch = createEventDispatcher();
 
   // export let selectedDoctor = { name: "Doc Oc", fee: 0};
   let selectedPrescription = { pres_id: 0, name: "Amoxicillin", price: 10 };
   export let addedPrescriptions = [];
 
-  let appointmentDate = "";
-  let patientName = "";
+  $: $sqlLogs;
+
   let color;
 
   // Initialize Materialize components
@@ -35,22 +37,39 @@
   }
 
   function getPresById(id) {
-    const idx = prescriptions.findIndex(x=>x.pres_id == id)
-    if (idx != -1)
-      return prescriptions[idx]
-    else
-      return prescriptions[0]
+    const idx = prescriptions.findIndex((x) => x.pres_id == id);
+    if (idx != -1) return prescriptions[idx];
+    else return prescriptions[0];
   }
 
-  $: medicalBill = addedPrescriptions.reduce((sum, p) => sum + getPresById(p).fee, 0);
-  $: grandTotal = visited
-    ? appointment.fee + medicalBill
-    : appointment.fee;
+  $: medicalBill = addedPrescriptions.reduce(
+    (sum, p) => sum + getPresById(p).fee,
+    0,
+  );
+  $: grandTotal = visited ? appointment.fee + medicalBill : appointment.fee;
   $: if (visited) {
-    tick().then(() => {
-      M.FormSelect.init(document.querySelectorAll("select"));
-    });
+    (async () => {
+      await tick(); // wait for DOM update
+      setTimeout(() => {
+        M.FormSelect.init(document.querySelectorAll("select"));
+      }, 0); // extra deferral to be safe with Materialize
+    })();
   }
+
+  function getPrescriptionNames(idList) {
+    // Filter prescriptions by IDs and map to names
+    const names = prescriptions
+      .filter((prescription) => idList.includes(prescription.pres_id))
+      .map((prescription) => prescription.name);
+
+    // Join the names into a single string
+    return names.join(", ");
+  }
+
+  const removePrescription = (id) => {
+    addedPrescriptions.splice(addedPrescriptions.indexOf(id), 1);
+    addedPrescriptions = addedPrescriptions;
+  };
 
   const changeAppointmentDoctorFee = () => {
     appointment.fee =
@@ -61,6 +80,109 @@
       doctors[
         doctors.findIndex((doc) => doc.doc_id == appointment.doc_id)
       ]?.name;
+  };
+
+  const saveAppointment = async () => {
+    console.log(appointment);
+    if (appointment.date && appointment.doc_id && appointment.ap_id) {
+      const query = `UPDATE Appointment SET date = ${appointment.date}, examiner = ${appointment.doc_id} WHERE ap_id = ${appointment.ap_id};`;
+      const query2 = `DELETE FROM AppointmentPrescription WHERE ap_id = ${appointment.ap_id};`;
+      const values = addedPrescriptions.map(
+        (presId) => `(${appointment.ap_id}, ${presId})`,
+      );
+      const valuesClause = values.join(", ");
+      const query3 = `INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES ${valuesClause};`;
+      try {
+        const response = await fetch("/api/query", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query,
+          }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          const updated = [
+            ...$sqlLogs,
+            {
+              query,
+              date: new Date().toString().substring(0, 21),
+            },
+          ];
+          sqlLogs.set(updated);
+          M.toast({ html: "✔️ SQL Query Added to Logs" });
+
+          const response = await fetch("/api/query", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: query2
+            }),
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            const updated = [
+              ...$sqlLogs,
+              {
+                query: query2,
+                date: new Date().toString().substring(0, 21),
+              },
+            ];
+            sqlLogs.set(updated);
+            M.toast({ html: "✅ Prescriptions Removed" });
+            M.toast({ html: "✔️ SQL Query Added to Logs" });
+
+            if (addedPrescriptions.length > 0) {
+              const response = await fetch("/api/query", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  query: query3,
+                }),
+              });
+
+              const result = await response.json();
+              if (result.success) {
+                const updated = [
+                  ...$sqlLogs,
+                  {
+                    query: query3,
+                    date: new Date().toString().substring(0, 21),
+                  },
+                ];
+                sqlLogs.set(updated);
+                M.toast({ html: "✅ Prescriptions Added" });
+                M.toast({ html: "✔️ SQL Query Added to Logs" });
+              } else M.toast({ html: "❌ Oh oh! Could not add Prescriptions" });
+            }
+
+            dispatch("save", {
+              ap_id: appointment.ap_id,
+              date: new Date(appointment.date * 1000).toLocaleString(),
+              doctor: appointment.doctor,
+              prescriptions: addedPrescriptions.join(),
+              prescription: getPrescriptionNames(addedPrescriptions),
+              bill: medicalBill
+            });
+          } else M.toast({ html: "❌ Oh oh! Could not remove Prescriptions" });
+
+          M.toast({ html: "✅ Appointment Updated" });
+        } else M.toast({ html: "❌ Oh oh! Could not update Appointment" });
+      } catch (error) {
+        console.log(error);
+        M.toast({ html: "❌ Something went wrong" });
+      }
+    } else {
+      M.toast({ html: "❌ Error in one of the fields" });
+    }
   };
 
   const changeAppointmentDate = (e) => {
@@ -92,6 +214,7 @@
         <div class="input-field">
           <input
             type="text"
+            disabled
             bind:value={appointment.patient}
             id="patient_name"
           />
@@ -144,7 +267,8 @@
             <div class="input-field">
               <select bind:value={selectedPrescription}>
                 {#each prescriptions as presc}
-                  <option value={presc.pres_id}>{presc.name} (Rs. {presc.fee})</option
+                  <option value={presc.pres_id}
+                    >{presc.name} (Rs. {presc.fee})</option
                   >
                 {/each}
               </select>
@@ -165,7 +289,14 @@
         <!-- List of Prescriptions -->
         <ul class="prescription-list">
           {#each addedPrescriptions as p}
-            <li>{getPresById(p).name} - Rs. {getPresById(p).fee}</li>
+            <li>
+              <button
+                on:click={() => removePrescription(p)}
+                style="border: none; cursor: pointer;"
+                class="z-depth-2 waves-effect red white-text">-</button
+              >
+              &nbsp; {getPresById(p).name} - Rs. {getPresById(p).fee}
+            </li>
           {/each}
         </ul>
 
@@ -183,6 +314,7 @@
 
     <div class="appointment-field">
       <button
+        on:click={saveAppointment}
         class="inside-card waves-effect waves-light btn {color} shadow-lg text-white"
         style="border-radius: 5px; color: white; text-transform: uppercase; width: 100%; margin: 0.2rem; padding: 0.4rem; display: flex; align-items: center; justify-content: center; gap: 1rem; border: none;"
         ><i class="reverse material-icons">save</i>
@@ -196,7 +328,9 @@
     <a class="waves-effect waves-light btn blue">
       <i class="material-icons left">print</i> Print Receipt
     </a>
-    <a class="waves-effect waves-light btn red">
+    <a 
+      on:click={()=>dispatch('deleteAppointment', {appointment})}
+      class="waves-effect waves-light btn red">
       <i class="material-icons left">delete</i> Delete Appointment
     </a>
   </div>

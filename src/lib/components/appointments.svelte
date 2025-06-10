@@ -145,11 +145,6 @@
         city: "New York",
     };
 
-    function handleSave(event) {
-        const updated = event.detail;
-        console.log("Saved patient:", updated);
-    }
-
     async function handleAdd(event) {
         const u = event.detail;
         console.log("Added appointment:", u);
@@ -189,12 +184,30 @@
         }
     }
 
+    const handleUpdate = (event) => {
+        const u = event.detail;
+        const index = allAppointments.findIndex((a) => a.ap_id == u.ap_id);
+        if (index != -1) {
+            allAppointments[index].dateString = u.date;
+            allAppointments[index].doctor = u.doctor;
+            allAppointments[index].prescriptions = u.prescriptions;
+            allAppointments[index].prescription = u.prescription;
+            allAppointments[index].bill = u.bill;
+        }
+
+        const modalElem = document.getElementById("edit-appointment-modal");
+        M.Modal.getInstance(modalElem).close();
+        clearSearch();
+        allAppointments = allAppointments;
+    };
+
     let color;
     let name = "";
     let phone = "";
     let city = "";
     let date = "";
     let doctor = "";
+    let visited = false;
 
     let doctors = [];
     let prescriptions = [];
@@ -206,14 +219,14 @@
         selectedAppointment.patient = capitalizeWords(
             selectedAppointment.patient,
         );
-        addedPrescriptions = selectedAppointment.prescriptions ? selectedAppointment.prescriptions.split(',').map(Number) : [];
+        addedPrescriptions = selectedAppointment.prescriptions
+            ? selectedAppointment.prescriptions.split(",").map(Number)
+            : [];
+        visited = addedPrescriptions.length > 0;
+
         const modalElem = document.getElementById("edit-appointment-modal");
         M.Modal.getInstance(modalElem).open();
-        // selectedDoctor = doctors.find(
-        //     (doc) => doc.doc_id == appointment.doc_id,
-        // );
         console.log("here: ", appointment);
-
     }
 
     function openAddAppointmentModal() {
@@ -262,16 +275,17 @@
                     M.toast({ html: "✅ Appointment Deleted" });
                     M.toast({ html: "✔️ SQL Query Added to Logs" });
 
-                    let index = appointments.findIndex(
+                    let index = allAppointments.findIndex(
                         (p) => p.ap_id == selectedAppointment.ap_id,
                     );
-                    if (index !== -1) appointments.splice(index, 1);
-                    allAppointments.splice(
-                        allAppointments.findIndex(
-                            (p) => p.id == selectedAppointment.ap_id,
-                        ),
-                        1,
-                    );
+                    if (index !== -1) allAppointments.splice(index, 1);
+                    clearSearch();
+                    // allAppointments.splice(
+                    //     allAppointments.findIndex(
+                    //         (p) => p.ap_id == selectedAppointment.ap_id,
+                    //     ),
+                    //     1,
+                    // );
 
                     appointments = appointments;
                 } else
@@ -280,6 +294,9 @@
                 console.log(error);
                 M.toast({ html: "❌ Something went wrong" });
             }
+
+            const modalElem = document.getElementById("edit-appointment-modal");
+            M.Modal.getInstance(modalElem).close();
         }
     };
 
@@ -314,6 +331,11 @@
         M.Modal.getInstance(modalElem).open();
         selectedAppointment = appt;
     }
+
+    const deleteWrapper = (event) => {
+        const appt = event.detail.appointment;
+        if (appt) openDeleteAppointmentModal(appt);
+    };
 
     function clearSearch() {
         name = date = city = phone = doctor = "";
@@ -399,7 +421,9 @@
     {doctors}
     {prescriptions}
     {addedPrescriptions}
-    on:save={handleSave}
+    bind:visited
+    on:save={handleUpdate}
+    on:deleteAppointment={deleteWrapper}
 />
 
 <!-- Add Appointment Modal -->
@@ -517,11 +541,15 @@
                     </div>
                     <div class="appointment-field">
                         <i class="material-icons">local_hospital</i>
-                        <b>Medical Bill:</b>&nbsp; Rs. {appt.bill}
+                        <b>Medical Bill:</b>&nbsp; Rs. {appt.bill
+                            ? appt.bill
+                            : 0}
                     </div>
                     <div class="appointment-field">
                         <i class="material-icons">description</i>
-                        <b>Prescription:</b> &nbsp;{appt.prescription}
+                        <b>Prescription:</b> &nbsp;{appt.prescription
+                            ? appt.prescription
+                            : 0}
                     </div>
                     <div class="appointment-field">
                         <button

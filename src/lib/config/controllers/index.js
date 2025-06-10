@@ -9,7 +9,7 @@ export const PAST_WEEK_APPOINTMENTS_QUERY = `SELECT DATE_FORMAT(FROM_UNIXTIME(da
 
 export const LIST_ALL_PATIENTS_QUERY = `SELECT P.id, P.name, P.sex, P.phone, P.city, COUNT(A.ap_id) AS total_appointments FROM Patient AS P LEFT JOIN Appointment AS A ON P.id = A.patient GROUP BY P.id, P.name, P.sex, P.phone, P.city ORDER BY P.name;`
 
-export const LIST_ALL_APPOINTMENTS_QUERY = `SELECT A.ap_id, A.date AS date, A.cause_of_visit AS cause, D.name AS doctor, D.doc_id as doc_id, D.fee AS fee, P.name AS patient, P.phone AS phone, P.city AS city, GROUP_CONCAT(Pr.pres_id SEPARATOR ',') AS prescriptions, GROUP_CONCAT(Pr.name SEPARATOR ', ') AS prescription, SUM(Pr.fee) AS bill FROM Appointment AS A JOIN Doctor AS D ON A.examiner = D.doc_id JOIN Patient AS P ON A.patient = P.id LEFT JOIN AppointmentPrescription AS AP ON A.ap_id = AP.ap_id LEFT JOIN Prescription AS Pr ON AP.pres_id = Pr.pres_id GROUP BY A.ap_id, A.date, A.cause_of_visit, D.name, P.name ORDER BY A.date DESC`;
+export const LIST_ALL_APPOINTMENTS_QUERY = `SELECT A.ap_id, A.date AS date, A.cause_of_visit AS cause, D.name AS doctor, D.doc_id as doc_id, D.fee AS fee, P.name AS patient, P.id as patient_id, P.phone AS phone, P.city AS city, GROUP_CONCAT(Pr.pres_id SEPARATOR ',') AS prescriptions, GROUP_CONCAT(Pr.name SEPARATOR ', ') AS prescription, SUM(Pr.fee) AS bill FROM Appointment AS A JOIN Doctor AS D ON A.examiner = D.doc_id JOIN Patient AS P ON A.patient = P.id LEFT JOIN AppointmentPrescription AS AP ON A.ap_id = AP.ap_id LEFT JOIN Prescription AS Pr ON AP.pres_id = Pr.pres_id GROUP BY A.ap_id, A.date, A.cause_of_visit, D.name, P.name ORDER BY A.date DESC`;
 
 export const LIST_ALL_DOCTORS_QUERY = `SELECT * FROM Doctor`;
 
