@@ -2,6 +2,7 @@
   import { onMount, createEventDispatcher } from "svelte";
   import { tick } from "svelte";
   import { accentColor, sqlLogs } from "$lib/stores";
+  import html2canvas from "html2canvas";
   import { toDatetimeLocal } from "$lib/config/controllers";
 
   export let visited = false;
@@ -121,7 +122,7 @@
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              query: query2
+              query: query2,
             }),
           });
 
@@ -170,7 +171,7 @@
               doctor: appointment.doctor,
               prescriptions: addedPrescriptions.join(),
               prescription: getPrescriptionNames(addedPrescriptions),
-              bill: medicalBill
+              bill: medicalBill,
             });
           } else M.toast({ html: "❌ Oh oh! Could not remove Prescriptions" });
 
@@ -189,7 +190,90 @@
     appointment.date = new Date(e.target.value).getTime() / 1000;
     appointment.dateString = new Date(e.target.value).toLocaleString();
   };
+
+  function downloadHiddenReceipt() {
+    const receipt = document.getElementById("hidden-receipt");
+
+    html2canvas(receipt, {
+      scale: 2,
+      useCORS: true,
+    }).then((canvas) => {
+      const link = document.createElement("a");
+      link.download = "medical-receipt.png";
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  }
 </script>
+
+<!-- Hidden Receipt -->
+<!-- Off-screen hidden receipt -->
+<div id="hidden-receipt" style="position: absolute; left: -9999px; top: -9999px;">
+  <div class="receipt-container z-depth-1">
+    <div class="receipt-header">
+      <img style="text-align: center; width: 15rem; filter: invert(1)" src="logo.png" alt="shifa-dbs">
+      <p><a href="https://www.abcclinic.com" style="color: #000;">www.shifadbs.com</a></p>
+    </div>
+
+    <div>
+      <div class="section-title">Patient Information</div>
+      <table class="info-table">
+        <tr>
+          <td><strong>Name:</strong></td>
+          <td>{ appointment.patient }</td>
+        </tr>
+        <tr>
+          <td><strong>Phone:</strong></td>
+          <td>{ appointment.phone }</td>
+        </tr>
+        <tr>
+          <td><strong>Appointment:</strong></td>
+          <td>{ appointment.dateString }</td>
+        </tr>
+        <tr>
+          <td><strong>Doctor:</strong></td>
+          <td>{ appointment.doctor }</td>
+        </tr>
+      </table>
+    </div>
+
+    <div>
+      <div class="section-title">Billing Information</div>
+      <table class="info-table">
+        <tr>
+          <td><strong>Doctor's Fee:</strong></td>
+          <td>Rs. {appointment.fee}</td>
+        </tr>
+        <tr>
+          <td><strong>Prescriptions:</strong></td>
+          <td>
+            <ul style="margin: 0; padding-left: 20px;">
+              {#if appointment.prescription}
+              {#each appointment.prescription.split(',') as pres}
+              <li>{pres.trim()}</li>
+              {/each}
+              {:else}
+              <li><em>Not Yet Advised</em></li>
+              {/if}
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Medical Bill:</strong></td>
+          <td>Rs. { appointment.bill || 0 }</td>
+        </tr>
+        <tr class="total-row">
+          <td><strong>Total:</strong></td>
+          <td>Rs. { (appointment.fee + Number(appointment.bill)) || appointment.fee }</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <p>Thank you for visiting Shifa DBs</p>
+    </div>
+  </div>
+</div>
 
 <!-- Modal Structure -->
 <div id="edit-appointment-modal" class="modal modal-fixed-footer">
@@ -325,12 +409,16 @@
 
   <!-- Modal Footer -->
   <div class="modal-footer modal-footer-actions">
-    <a class="waves-effect waves-light btn blue">
-      <i class="material-icons left">print</i> Print Receipt
+    <a
+      on:click={downloadHiddenReceipt}
+      class="waves-effect waves-light btn blue"
+    >
+      <i class="material-icons left">download</i> Print Receipt
     </a>
-    <a 
-      on:click={()=>dispatch('deleteAppointment', {appointment})}
-      class="waves-effect waves-light btn red">
+    <a
+      on:click={() => dispatch("deleteAppointment", { appointment })}
+      class="waves-effect waves-light btn red"
+    >
       <i class="material-icons left">delete</i> Delete Appointment
     </a>
   </div>
@@ -380,5 +468,38 @@
 
   .prescription-list li {
     padding: 4px 0;
+  }
+
+    .receipt-container {
+    width: 600px;
+    padding: 20px;
+    font-family: 'Courier New', monospace;
+    color: #000;
+    background: #fff;
+    border: 1px solid #000;
+  }
+
+  .receipt-header {
+    text-align: center;
+    border-bottom: 2px dashed #000;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+  }
+
+  .section-title {
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    text-decoration: underline;
+  }
+
+  .info-table td {
+    padding: 4px 0;
+  }
+
+  .total-row td {
+    font-weight: bold;
+    border-top: 2px solid #000;
+    padding-top: 8px;
   }
 </style>
