@@ -514,7 +514,7 @@
             </div>
         {:else if appointments.length == 0}
             <h5 class="grey-text" style="text-align: center;">
-                No Appointments to Display
+                <img style="max-width: 250px;" src="/no_data.png" alt="No Appointments">
             </h5>
         {:else}
             {#each appointments as appt}

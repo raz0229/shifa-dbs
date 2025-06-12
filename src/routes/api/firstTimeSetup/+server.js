@@ -87,14 +87,15 @@ export async function POST({ request }) {
 (1005, 1749021250, 'Follow-up for Flu', 101, 5);`,
 
 // Insert Prescriptions into Appointments 
-`INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1001, 201);
-INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1001, 202);
-INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1002, 203);
-INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1003, 202);
-INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1003, 203);
-INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1003, 204);
-INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1004, 204);
-INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES (1005, 202);`
+`INSERT INTO AppointmentPrescription (ap_id, pres_id) VALUES 
+(1001, 201),
+(1001, 202),
+(1002, 203),
+(1003, 202),
+(1003, 203),
+(1003, 204),
+(1004, 204),
+(1005, 202);`
 
 
         ];

@@ -70,7 +70,7 @@
 
 <div class="logs-container">
   {#if logs.length === 0}
-    <p class="center grey-text">No logs to display.</p>
+    <p class="center grey-text"><img style="max-width: 250px;" src="/no_data.png" alt="No Logs"></p>
   {:else}
     {#each logs as log}
       <div class="log-entry">

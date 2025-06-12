@@ -39,24 +39,6 @@ function getPageTitle() {
   };
 }
 
-function getStoreInfo() {
-  let storeInfo;
-  if (browser) {
-    storeInfo = JSON.parse(localStorage.getItem('storeInfo')) || [];
-  }
-
-  const { subscribe, set } = writable(storeInfo);
-
-  return {
-    subscribe,
-    set: (storeInfo) => {
-      if (browser) {
-        localStorage.setItem('storeInfo', JSON.stringify(storeInfo));
-      }
-      set(JSON.stringify(storeInfo));
-    }
-  };
-}
 
 // Load initial value from localStorage or use empty array
 const getInitialValue = () => {
@@ -96,43 +78,7 @@ function getSQLLogs() {
   };
 }
 
-function getPrintableItems() {
-  let printableItems;
-  if (browser) {
-    printableItems = JSON.parse(localStorage.getItem('printableItems')) || [];
-  }
 
-  const { subscribe, set } = writable(printableItems);
-
-  return {
-    subscribe,
-    set: (printableItems) => {
-      if (browser) {
-        localStorage.setItem('printableItems', JSON.stringify(printableItems));
-      }
-      set(JSON.stringify(printableItems));
-    }
-  };
-}
-
-function getPrintList() {
-  let printList;
-  if (browser) {
-    printList = JSON.parse(localStorage.getItem('printList')) || [];
-  }
-
-  const { subscribe, set } = writable(printList);
-
-  return {
-    subscribe,
-    set: (printList) => {
-      if (browser) {
-        localStorage.setItem('printList', JSON.stringify([...printList]));
-      }
-      set(JSON.stringify(printList));
-    }
-  };
-}
 
 function getSelectedTab() {
   let selectedTab;
@@ -156,8 +102,5 @@ function getSelectedTab() {
 
 export const accentColor = getaccentColor();
 export const selectedTab = getSelectedTab();
-export const storeInfo = getStoreInfo();
-export const printSet = getPrintList();
-export const printableItems = getPrintableItems();
 export const pageTitle = getPageTitle();
 export const sqlLogs = getSQLLogs();

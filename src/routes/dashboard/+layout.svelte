@@ -79,11 +79,11 @@
 
     <div style="padding-left: 1rem;" class="login-info">
         <div class="stockImage">
-            <img src={store?.stockPicture} alt="Stock" />
+            <img src="/profile.jpg" alt="Stock" />
         </div>
-        <h5><b>{store?.businessName ?? "Business Name"}</b></h5>
-        <p style="margin: 0;" class="blue-text"><em>{email}</em></p>
-        <h6 class="small-icons grey-text darken-4">
+        <h5><b>Abdullah Zafar</b></h5>
+        <p style="margin: 0;" class="blue-text"><em>@raz0229</em></p>
+        <!-- <h6 class="small-icons grey-text darken-4">
             <i class="material-icons left">pin_drop</i>{store?.city ??
                 "Loading..."}
         </h6>
@@ -96,7 +96,7 @@
             <i class="material-icons left">verified</i><em
                 >{store?._id ?? "Loading..."}</em
             >
-        </h6>
+        </h6> -->
     </div>
 
     <div class="divider"></div>

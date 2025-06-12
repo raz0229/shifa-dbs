@@ -384,7 +384,7 @@
 >
     {#if patients.length === 0}
         <p class="red-text" style="text-align: center;">
-            <em>No Patients! Try clearing the Search Fields</em>
+            <img style="max-width: 250px;" src="/no_data.png" alt="No Appointments">
         </p>
     {/if}
 

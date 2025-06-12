@@ -1,7 +1,7 @@
 {
-    "name" : "The Factory",
-    "short_name": "Factory",
-    "description" : "Manage, Update, and Edit Orders, Build Print Slips and more.",
+    "name" : "Shifa EHR",
+    "short_name": "Shifa",
+    "description" : "Manage, Update, and Edit Appointments/Patients, Build Print Slips and more.",
     "start_url" : "/",
     "display" : "standalone",
     "background_color" : "#ffffff",
