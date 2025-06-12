@@ -14,12 +14,12 @@
   onMount(async () => {
       if (browser) {
           color = $accentColor;
-          pageTitle.set('EHR | Login')
+          pageTitle.set('Shifa | Login')
           const signedIn = await isSignedIn()
-            if (signedIn) {
-              M.toast({ html: "✅ Welcome back! Redirecting..." });
-              location.href = '/dashboard';
-            }
+          if (signedIn) {
+            M.toast({ html: "✅ Welcome back! Redirecting..." });
+            location.href = '/dashboard';
+          }
       }
   });
 
@@ -120,7 +120,7 @@
   .logo {
     display: block;
     margin: 0 auto 20px auto; /* Center the image horizontally */
-    max-width: 300px; /* Adjust the max width of the logo */
+    max-width: 250px; /* Adjust the max width of the logo */
     height: auto;
   }
 

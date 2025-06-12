@@ -46,19 +46,19 @@
     ],
     "screenshots" : [
         {
-            "src" : "images/img1-370x727.png",
+            "src" : "images/img1-349x760.png",
             "type" : "image/png",
-            "sizes" : "370x727"
+            "sizes" : "349x760"
         },
         {
-            "src" : "images/img3-360x740.png",
+            "src" : "images/img3-348x755.png",
             "type" : "image/png",
-            "sizes" : "360x740"
+            "sizes" : "348x755"
         },
         {
-            "src" : "images/img2-361x737.png",
+            "src" : "images/img2-351x761.png",
             "type" : "image/png",
-            "sizes" : "361x737"
+            "sizes" : "351x761"
         }
     ]
 }
