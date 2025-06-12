@@ -65,16 +65,16 @@
     import PrescriptionList from "$lib/components/PrescriptionList.svelte";
 
     let colors = [
-        "red",
-        "purple",
-        "blue",
-        "light-blue",
-        "teal",
-        "green",
-        "orange",
-        "indigo",
-        "amber",
-        "grey",
+        "red accent-4",
+        "purple accent-4",
+        "blue accent-4",
+        "light-blue accent-4",
+        "teal accent-4",
+        "green accent-4",
+        "orange accent-4",
+        "indigo accent-4",
+        "amber accent-4",
+        "grey accent-4",
     ];
 
     let selectedColor;

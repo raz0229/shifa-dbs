@@ -63,13 +63,8 @@
         >
     </li>
     <li>
-        <a href="/dashboard/overview"
-            >Overview<i class="material-icons left">dashboard</i></a
-        >
-    </li>
-    <li>
         <a href="/dashboard/profile"
-            >My Business<i class="material-icons left">store</i></a
+            >About Shifa<i class="material-icons left">store</i></a
         >
     </li>
     <li on:click={logout} class="red">
@@ -111,13 +106,8 @@
         >
     </li>
     <li>
-        <a href="/dashboard/overview"
-            >Overview<i class="material-icons left">dashboard</i></a
-        >
-    </li>
-    <li>
         <a href="/dashboard/profile"
-            >My Business<i class="material-icons left">store</i></a
+            >About Shifa<i class="material-icons left">store</i></a
         >
     </li>
     <div class="divider"></div>
