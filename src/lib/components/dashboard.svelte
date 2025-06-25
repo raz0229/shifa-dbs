@@ -202,7 +202,7 @@
             };
 
             if (result && result.results) {
-                data = buildChartData(result.results, new Date("2025-06-04"));
+                data = buildChartData(result.results, new Date().toISOString().substring(0,10)));
             }
 
             return data;
