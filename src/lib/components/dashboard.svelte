@@ -64,7 +64,7 @@
         // Go back 7 days from today (including today)
         for (let i = 6; i >= 0; i--) {
             const date = new Date(today);
-            date.setDate(today.getDate() - i);
+            date.setDate(new Date(today).getDate() - i);
             const isoDate = date.toISOString().split("T")[0]; // 'YYYY-MM-DD'
             const weekday = labels[date.getDay()];
             labelArray.push(weekday);
